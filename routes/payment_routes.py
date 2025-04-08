@@ -35,6 +35,7 @@ def create_payment(payment: schemas.PaymentCreate, db: Session = Depends(get_db)
         payment=payment.payment,
         payment_due=payment.payment_due,
         is_paid=payment.is_paid,
+        property_id=payment.property_id,
         payment_date=payment.payment_date
     )
     

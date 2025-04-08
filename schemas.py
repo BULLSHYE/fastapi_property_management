@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime, date
-from typing import List, Optional
+from typing import List, Optional, Union
 
 # Landlord Schemas
 class LandlordBase(BaseModel):
@@ -62,12 +62,13 @@ class RoomUpdate(BaseModel):
     room_number: Optional[str] = None
     is_occupied: Optional[bool] = None
 
-class Room(RoomBase):
-    id: int
-    property_id: int
-
-    class Config:
-        orm_mode = True
+# class Room(RoomBase):
+#     id: int
+#     property_id: int
+#     tenants: list[Tenant] = []  # Add tenants to the room schema for display
+    
+#     class Config:
+#         orm_mode = True
 
 # Tenant Schemas
 class TenantBase(BaseModel):
@@ -75,9 +76,10 @@ class TenantBase(BaseModel):
     email: EmailStr
     mobile_number: str
     total_person: int = 1
-    aadhar_photo: str
-    other_images: str
+    aadhar_photo: Optional[str] = None
+    other_images: Optional[str] = None
     move_in_date: date
+    property_id: int
     is_active: bool = True
 
 class TenantCreate(TenantBase):
@@ -97,6 +99,15 @@ class Tenant(TenantBase):
     id: int
     assigned_room_id: int
 
+    class Config:
+        orm_mode = True
+
+#Room schmeas
+class Room(RoomBase):
+    id: int
+    property_id: int
+    tenants: list[Tenant] = []  # Add tenants to the room schema for display
+    
     class Config:
         orm_mode = True
 
@@ -129,19 +140,24 @@ class Payment(PaymentBase):
 
 # Electricity Schemas
 class ElectricityBase(BaseModel):
-    reading_date: date
+    # reading_date: date
     last_reading: float
     current_reading: float
     rate: float = 10.1
 
 class ElectricityCreate(ElectricityBase):
-    room_id: int
+    # room_id: int
+    room_number: str
+    property_id: int
 
 class ElectricityUpdate(BaseModel):
     reading_date: Optional[date] = None
     last_reading: Optional[float] = None
     current_reading: Optional[float] = None
     rate: Optional[float] = None
+
+class BulkElectricityCreate(BaseModel):
+    entries: Union[ElectricityCreate, List[ElectricityCreate]]
 
 class Electricity(ElectricityBase):
     id: int

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -30,6 +30,7 @@ def create_tenant(tenant: schemas.TenantCreate, db: Session = Depends(get_db)):
         other_images=tenant.other_images,
         assigned_room_id=tenant.assigned_room_id,
         move_in_date=tenant.move_in_date,
+        property_id=tenant.property_id,
         is_active=tenant.is_active
     )
     
@@ -93,3 +94,56 @@ def delete_tenant(tenant_id: int, db: Session = Depends(get_db)):
     db.delete(db_tenant)
     db.commit()
     return None
+
+@router.get("/property/{property_id}", status_code=status.HTTP_200_OK)
+def read_property_tenants(
+    property_id: int, 
+    is_active: bool = Query(None, description="Filter tenants by active status. Default is None (all tenants)", nullable=True),
+    db: Session = Depends(get_db)
+):
+    # Fetch the property along with its associated rooms and tenants
+    db_property = db.query(models.Property).filter(models.Property.id == property_id).first()
+    
+    if not db_property:
+        raise HTTPException(status_code=404, detail="Property not found")
+
+    # Prepare the response structure
+    property_data = {
+        "property_name": db_property.property_name,
+        "address": db_property.address,
+        "rooms": []
+    }
+
+    # Loop through all the rooms in the property
+    for room in db_property.rooms:
+        room_data = {
+            "room_number": room.room_number,
+            "is_occupied": room.is_occupied,
+            "tenants": []
+        }
+
+        # Fetch tenants based on active status filter
+        tenants_query = db.query(models.Tenant).filter(models.Tenant.assigned_room_id == room.id, models.Tenant.property_id == property_id)
+
+        # Apply active status filter if provided
+        if is_active is not None:
+            tenants_query = tenants_query.filter(models.Tenant.is_active == is_active)
+
+        tenants = tenants_query.all()
+
+        # Add tenants' details to the room_data
+        for tenant in tenants:
+            room_data["tenants"].append({
+                "tenant_name": tenant.name,
+                "tenant_email": tenant.email,
+                "tenant_mobile": tenant.mobile_number,
+                "move_in_date": tenant.move_in_date,
+                "total_person": tenant.total_person,
+                "aadhar_photo": tenant.aadhar_photo,
+                "other_images": tenant.other_images,
+            })
+
+        # Add the room data to property data
+        property_data["rooms"].append(room_data)
+
+    return property_data

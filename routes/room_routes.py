@@ -43,7 +43,7 @@ def read_rooms(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 
 @router.get("/{room_id}", response_model=schemas.Room)
 def read_room(room_id: int, db: Session = Depends(get_db)):
-    db_room = db.query(models.Room).filter(models.Room.id == room_id).first()
+    db_room = db.query(models.Room).filter(models.Room.room_number == room_id).first()
     if db_room is None:
         raise HTTPException(status_code=404, detail="Room not found")
     return db_room
