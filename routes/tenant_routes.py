@@ -119,7 +119,8 @@ def read_property_tenants(
         room_data = {
             "room_number": room.room_number,
             "is_occupied": room.is_occupied,
-            "tenants": []
+            # "tenants": []
+            "tenants": {}
         }
 
         # Fetch tenants based on active status filter
@@ -132,8 +133,11 @@ def read_property_tenants(
         tenants = tenants_query.all()
 
         # Add tenants' details to the room_data
-        for tenant in tenants:
-            room_data["tenants"].append({
+        # for tenant in tenants:
+        if tenants:
+            tenant = tenants[0]
+            # room_data["tenants"].append({
+            room_data["tenants"] = {
                 "tenant_name": tenant.name,
                 "tenant_email": tenant.email,
                 "tenant_mobile": tenant.mobile_number,
@@ -141,7 +145,7 @@ def read_property_tenants(
                 "total_person": tenant.total_person,
                 "aadhar_photo": tenant.aadhar_photo,
                 "other_images": tenant.other_images,
-            })
+            }
 
         # Add the room data to property data
         property_data["rooms"].append(room_data)

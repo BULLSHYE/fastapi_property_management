@@ -164,6 +164,8 @@ class Electricity(ElectricityBase):
     room_id: int
     consumption: Optional[float]
     total_amount: Optional[float]
+    property_id : int
+    reading_date: date
 
     class Config:
         orm_mode = True
