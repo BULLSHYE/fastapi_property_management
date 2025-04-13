@@ -54,6 +54,7 @@ class Property(PropertyBase):
 class RoomBase(BaseModel):
     room_number: str
     is_occupied: bool = False
+    rate: int = 2000
 
 class RoomCreate(RoomBase):
     property_id: int
@@ -61,6 +62,7 @@ class RoomCreate(RoomBase):
 class RoomUpdate(BaseModel):
     room_number: Optional[str] = None
     is_occupied: Optional[bool] = None
+    rate: Optional[int] = None
 
 # class Room(RoomBase):
 #     id: int
@@ -73,7 +75,7 @@ class RoomUpdate(BaseModel):
 # Tenant Schemas
 class TenantBase(BaseModel):
     name: str
-    email: EmailStr
+    email:   Optional[EmailStr] = None
     mobile_number: str
     total_person: int = 1
     aadhar_photo: Optional[str] = None

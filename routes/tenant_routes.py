@@ -1,9 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile
 from sqlalchemy.orm import Session
-from typing import List
-
+from typing import List, Optional
+import os
+import shutil
+import uuid
 from database import get_db
 import models, schemas
+
+UPLOAD_DIR = "static/tenants"
 
 router = APIRouter(
     prefix="/tenants",
@@ -21,13 +25,29 @@ def create_tenant(tenant: schemas.TenantCreate, db: Session = Depends(get_db)):
     if room.is_occupied:
         raise HTTPException(status_code=400, detail="Room is already occupied")
     
+    # Save uploaded files
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    
+    def save_file(upload_file: UploadFile):
+        extension = os.path.splitext(upload_file.filename)[1]
+        unique_name = f"{uuid.uuid4()}{extension}"
+        file_path = os.path.join(UPLOAD_DIR, unique_name)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(upload_file.file, buffer)
+        return file_path
+
+    aadhar_path = save_file(tenant.aadhar_photo)
+    other_images_path = save_file(tenant.other_images)
+
     db_tenant = models.Tenant(
         name=tenant.name,
         email=tenant.email,
         mobile_number=tenant.mobile_number,
         total_person=tenant.total_person,
-        aadhar_photo=tenant.aadhar_photo,
-        other_images=tenant.other_images,
+        aadhar_photo=aadhar_path,
+        # aadhar_photo=tenant.aadhar_photo,
+        other_images=other_images_path,
+        # other_images=tenant.other_images,
         assigned_room_id=tenant.assigned_room_id,
         move_in_date=tenant.move_in_date,
         property_id=tenant.property_id,
@@ -97,8 +117,8 @@ def delete_tenant(tenant_id: int, db: Session = Depends(get_db)):
 
 @router.get("/property/{property_id}", status_code=status.HTTP_200_OK)
 def read_property_tenants(
-    property_id: int, 
-    is_active: bool = Query(None, description="Filter tenants by active status. Default is None (all tenants)", nullable=True),
+    property_id: int,
+    is_active: Optional[bool] = Query(True, description="Filter tenants by active status. Default is True."),
     db: Session = Depends(get_db)
 ):
     # Fetch the property along with its associated rooms and tenants
@@ -119,12 +139,14 @@ def read_property_tenants(
         room_data = {
             "room_number": room.room_number,
             "is_occupied": room.is_occupied,
-            # "tenants": []
-            "tenants": {}
+            "tenants": None  # Default to None
         }
 
         # Fetch tenants based on active status filter
-        tenants_query = db.query(models.Tenant).filter(models.Tenant.assigned_room_id == room.id, models.Tenant.property_id == property_id)
+        tenants_query = db.query(models.Tenant).filter(
+            models.Tenant.assigned_room_id == room.id,
+            models.Tenant.property_id == property_id
+        )
 
         # Apply active status filter if provided
         if is_active is not None:
@@ -132,11 +154,9 @@ def read_property_tenants(
 
         tenants = tenants_query.all()
 
-        # Add tenants' details to the room_data
-        # for tenant in tenants:
+        # Add first tenant’s detail if any exist
         if tenants:
             tenant = tenants[0]
-            # room_data["tenants"].append({
             room_data["tenants"] = {
                 "tenant_name": tenant.name,
                 "tenant_email": tenant.email,
@@ -151,3 +171,60 @@ def read_property_tenants(
         property_data["rooms"].append(room_data)
 
     return property_data
+
+
+# @router.get("/property/{property_id}", status_code=status.HTTP_200_OK)
+# def read_property_tenants(
+#     property_id: int,
+#     is_active: Optional[bool] = Query(True, description="Filter tenants by active status. Default is True."),
+#     db: Session = Depends(get_db)
+# ):
+#     # Fetch the property along with its associated rooms and tenants
+#     db_property = db.query(models.Property).filter(models.Property.id == property_id).first()
+    
+#     if not db_property:
+#         raise HTTPException(status_code=404, detail="Property not found")
+
+#     property_data = {
+#         "property_name": db_property.property_name,
+#         "address": db_property.address,
+#         "rooms": []
+#     }
+
+#     for room in db_property.rooms:
+#         # Filter tenants for the room
+#         tenants_query = db.query(models.Tenant).filter(
+#             models.Tenant.assigned_room_id == room.id,
+#             models.Tenant.property_id == property_id
+#         )
+
+#         if is_active is not None:
+#             tenants_query = tenants_query.filter(models.Tenant.is_active == is_active)
+
+#         tenants = tenants_query.all()
+
+#         # ⚠️ Skip the room if no matching tenants and active filter is on
+#         if is_active is not None and not tenants:
+#             continue
+
+#         room_data = {
+#             "room_number": room.room_number,
+#             "is_occupied": room.is_occupied,
+#             "tenants": None
+#         }
+
+#         if tenants:
+#             tenant = tenants[0]
+#             room_data["tenants"] = {
+#                 "tenant_name": tenant.name,
+#                 "tenant_email": tenant.email,
+#                 "tenant_mobile": tenant.mobile_number,
+#                 "move_in_date": tenant.move_in_date,
+#                 "total_person": tenant.total_person,
+#                 "aadhar_photo": tenant.aadhar_photo,
+#                 "other_images": tenant.other_images,
+#             }
+
+#         property_data["rooms"].append(room_data)
+
+#     return property_data

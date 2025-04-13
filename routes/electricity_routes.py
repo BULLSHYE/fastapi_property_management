@@ -4,7 +4,7 @@ from typing import List, Union
 from fastapi import Body
 from database import get_db
 import models, schemas
-from datetime import date
+from datetime import date, datetime
 router = APIRouter(
     prefix="/electricity",
     tags=["electricity"],
@@ -36,6 +36,56 @@ router = APIRouter(
 #     db.commit()
 #     db.refresh(db_electricity)
 #     return db_electricity
+
+# @router.post("/", status_code=status.HTTP_201_CREATED)
+# def create_electricity_readings(
+#     data: Union[schemas.ElectricityCreate, List[schemas.ElectricityCreate]] = Body(...),
+#     db: Session = Depends(get_db)
+# ):
+#     # Normalize single entry to list
+#     if isinstance(data, dict):
+#         data = [schemas.ElectricityCreate(**data)]
+
+#     created_entries = []
+
+#     for entry in data:
+#         # 1. Lookup Room by room_number and property_id
+#         room = db.query(models.Room).filter_by(
+#             room_number=entry.room_number,
+#             property_id=entry.property_id
+#         ).first()
+
+#         if not room:
+#             raise HTTPException(
+#                 status_code=404,
+#                 detail=f"Room {entry.room_number} in property {entry.property_id} not found"
+#             )
+
+#         # 2. Calculate values
+#         consumption = round(entry.current_reading - entry.last_reading, 2)
+#         total_amount = consumption * entry.rate
+
+#         # 3. Create Electricity entry
+#         db_entry = models.Electricity(
+#             room_id=room.id,  # ✅ add room_id
+#             room_number=room.room_number,
+#             last_reading=entry.last_reading,
+#             current_reading=entry.current_reading,
+#             consumption=consumption,
+#             rate=entry.rate,
+#             total_amount=total_amount,
+#             property_id=entry.property_id
+#             # ✅ no need to pass reading_date — default will handle it
+#         )
+
+#         db.add(db_entry)
+#         created_entries.append(db_entry)
+
+#     db.commit()
+#     for e in created_entries:
+#         db.refresh(e)
+
+#     return created_entries if len(created_entries) > 1 else created_entries[0]
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_electricity_readings(
@@ -81,12 +131,31 @@ def create_electricity_readings(
         db.add(db_entry)
         created_entries.append(db_entry)
 
+        # 4. Create Payment entry
+        tenant = room.tenant  # Room has a relationship with tenant
+        if tenant:
+            # Create a payment for the corresponding tenant
+            payment = models.Payment(
+                tenant_id=tenant.id,
+                room_id=room.id,
+                month=datetime.now().month,
+                year=datetime.now().year,
+                payment=total_amount,
+                payment_due=None,  # Assuming no due for now
+                is_paid=True,  # Assuming it's paid by default
+                property_id=entry.property_id
+            )
+
+            db.add(payment)
+
+    # Commit all changes to the database
     db.commit()
+
+    # Refresh entries to get the latest values
     for e in created_entries:
         db.refresh(e)
 
     return created_entries if len(created_entries) > 1 else created_entries[0]
-
 
 @router.get("/", response_model=List[schemas.Electricity])
 def read_electricity_readings(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):

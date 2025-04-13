@@ -5,6 +5,7 @@ import uvicorn
 from database import engine
 import models
 from routes import landlord_routes, property_routes, room_routes, tenant_routes, payment_routes, electricity_routes
+from fastapi.staticfiles import StaticFiles
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
@@ -31,6 +32,8 @@ app.include_router(room_routes.router)
 app.include_router(tenant_routes.router)
 app.include_router(payment_routes.router)
 app.include_router(electricity_routes.router)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
 def read_root():

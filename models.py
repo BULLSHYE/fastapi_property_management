@@ -53,11 +53,11 @@ class Room(Base):
     property_id = Column(Integer, ForeignKey('property.id', ondelete='CASCADE'), nullable=False)
     room_number = Column(String(10), nullable=False)
     is_occupied = Column(Boolean, default=False)
-    
+    rate = Column(Integer, default=2000)
     # Relationships
     property = relationship("Property", back_populates="rooms")
-    # tenant = relationship("Tenant", back_populates="assigned_room", uselist=False, cascade="all, delete-orphan")
-    tenant = relationship("Tenant", back_populates="assigned_room", cascade="all, delete-orphan")
+    tenant = relationship("Tenant", back_populates="assigned_room", uselist=False, cascade="all, delete-orphan")
+    # tenant = relationship("Tenant", back_populates="assigned_room", cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="room", cascade="all, delete-orphan")
     electricity_readings = relationship("Electricity", back_populates="room", cascade="all")
     
