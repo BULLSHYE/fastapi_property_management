@@ -33,7 +33,7 @@ app.include_router(tenant_routes.router)
 app.include_router(payment_routes.router)
 app.include_router(electricity_routes.router)
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
 def read_root():
