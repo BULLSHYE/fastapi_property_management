@@ -1,8 +1,8 @@
-"""Added changes in electricity and proeprty id added
+"""Added changes in and new model created
 
-Revision ID: 3361380166b9
+Revision ID: ac8687fe6ccc
 Revises: 
-Create Date: 2025-04-09 00:02:27.194432
+Create Date: 2025-04-13 16:17:52.756116
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '3361380166b9'
+revision: str = 'ac8687fe6ccc'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -37,6 +37,7 @@ def upgrade() -> None:
     sa.Column('landlord_id', sa.Integer(), nullable=False),
     sa.Column('address', sa.String(length=255), nullable=False),
     sa.Column('property_name', sa.String(length=255), nullable=False),
+    sa.Column('total_rooms', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('is_active', sa.Boolean(), nullable=True),
     sa.ForeignKeyConstraint(['landlord_id'], ['landlord.user_id'], ondelete='CASCADE'),
@@ -47,6 +48,7 @@ def upgrade() -> None:
     sa.Column('property_id', sa.Integer(), nullable=False),
     sa.Column('room_number', sa.String(length=10), nullable=False),
     sa.Column('is_occupied', sa.Boolean(), nullable=True),
+    sa.Column('rate', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['property_id'], ['property.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
