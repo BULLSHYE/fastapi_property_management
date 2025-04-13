@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Date, Float, ForeignKey, UniqueConstraint, Table, MetaData
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Date, Float, ForeignKey, UniqueConstraint, Table, MetaData, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -31,6 +31,7 @@ class Property(Base):
     landlord_id = Column(Integer, ForeignKey('landlord.user_id', ondelete='CASCADE'), nullable=False)
     address = Column(String(255), nullable=False)
     property_name = Column(String(255), nullable=False)
+    total_rooms = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.now(pytz.UTC))
     is_active = Column(Boolean, default=True)
     
@@ -63,6 +64,25 @@ class Room(Base):
     
     def __repr__(self):
         return f"<Room {self.room_number}>"
+
+
+@event.listens_for(Room, 'after_insert')
+def increment_total_rooms(mapper, connection, target):
+    property_table = Property.__table__
+    connection.execute(
+        property_table.update().
+        where(property_table.c.id == target.property_id).
+        values(total_rooms=property_table.c.total_rooms + 1)
+    )
+
+@event.listens_for(Room, 'after_delete')
+def decrement_total_rooms(mapper, connection, target):
+    property_table = Property.__table__
+    connection.execute(
+        property_table.update().
+        where(property_table.c.id == target.property_id).
+        values(total_rooms=property_table.c.total_rooms - 1)
+    )
 
 class Tenant(Base):
     __tablename__ = 'tenant'
@@ -135,3 +155,7 @@ class Electricity(Base):
     
     def __repr__(self):
         return f"<Electricity reading for room_id={self.room_id} on {self.reading_date}>"
+    
+
+
+
