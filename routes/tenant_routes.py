@@ -187,7 +187,7 @@ def read_property_tenants(
     property_data = {
         "property_name": db_property.property_name,
         "address": db_property.address,
-        "rooms": []
+        "data": []
     }
 
     # Prepare list to track rooms with tenants
@@ -225,9 +225,9 @@ def read_property_tenants(
 
     # If no rooms had tenants, return rooms as null
     if not rooms_with_tenants:
-        property_data["rooms"] = None
+        property_data["data"] = None
     else:
-        property_data["rooms"] = rooms_with_tenants
+        property_data["data"] = rooms_with_tenants
 
     return property_data
 
