@@ -17,6 +17,7 @@ class Landlord(Base):
     modified_at = Column(DateTime, default=datetime.now(pytz.UTC), onupdate=datetime.now(pytz.UTC))
     is_subscription = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
+    password = Column(String)  # hashed password
     
     # Relationships
     properties = relationship("Property", back_populates="landlord", cascade="all, delete-orphan")

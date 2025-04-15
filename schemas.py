@@ -11,7 +11,7 @@ class LandlordBase(BaseModel):
     is_active: bool = True
 
 class LandlordCreate(LandlordBase):
-    pass
+    password : str
 
 class LandlordUpdate(BaseModel):
     username: Optional[str] = None
@@ -19,6 +19,11 @@ class LandlordUpdate(BaseModel):
     mobile_number: Optional[str] = None
     is_subscription: Optional[bool] = None
     is_active: Optional[bool] = None
+    password: Optional[str]
+
+class LandlordLogin(BaseModel):
+    username_or_email: str
+    password: str
 
 class Landlord(LandlordBase):
     user_id: int
@@ -144,7 +149,9 @@ class Payment(PaymentBase):
     room_id: int
 
     class Config:
-        orm_mode = True
+        # orm_mode = True
+        from_attributes =  True
+
 
 # Electricity Schemas
 class ElectricityBase(BaseModel):
@@ -176,4 +183,4 @@ class Electricity(ElectricityBase):
     reading_date: date
 
     class Config:
-        orm_mode = True
+        from_attributes =  True

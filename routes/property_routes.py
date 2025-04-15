@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import extract
 from sqlalchemy.orm import Session
 from typing import List
 from collections import defaultdict
@@ -87,7 +88,7 @@ def proproperty_monthly_details(property_id: int, month: int, db: Session = Depe
         # Fetch meter readings for the specified month
         meter_readings = (
             db.query(models.Electricity)
-            .filter(models.Electricity.room_id.in_([room.id for room in rooms]), models.Electricity.reading_date.month == month)
+            .filter(models.Electricity.room_id.in_([room.id for room in rooms]),extract('month', models.Electricity.reading_date) == month)
             .all()
         )
 

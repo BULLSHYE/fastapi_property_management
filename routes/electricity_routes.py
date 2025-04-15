@@ -179,6 +179,16 @@ def read_room_electricity(room_id: int, db: Session = Depends(get_db)):
     readings = db.query(models.Electricity).filter(models.Electricity.room_id == room_id).all()
     return readings
 
+@router.get("/property/{property_id}", response_model=List[schemas.Electricity])
+def read_room_electricity(property_id: int, db: Session = Depends(get_db)):
+    # Check if room exists
+    room = db.query(models.Room).filter(models.Room.property_id == property_id).first()
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    
+    readings = db.query(models.Electricity).filter(models.Electricity.property_id == property_id).all()
+    return readings
+
 @router.put("/{reading_id}", response_model=schemas.Electricity)
 def update_electricity_reading(reading_id: int, electricity: schemas.ElectricityUpdate, db: Session = Depends(get_db)):
     db_reading = db.query(models.Electricity).filter(models.Electricity.id == reading_id).first()
