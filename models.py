@@ -32,6 +32,9 @@ class Property(Base):
     address = Column(String(255), nullable=False)
     property_name = Column(String(255), nullable=False)
     total_rooms = Column(Integer, default=0)
+    landmark = Column(String(255), nullable = True)
+    city = Column(String(255), nullable = True)
+    state = Column(String(255), nullable = True)
     created_at = Column(DateTime, default=datetime.now(pytz.UTC))
     is_active = Column(Boolean, default=True)
     
@@ -95,6 +98,7 @@ class Tenant(Base):
     aadhar_photo = Column(String, nullable=True) #False Optional
     other_images = Column(String, nullable=True) #false Optional
     assigned_room_id = Column(Integer, ForeignKey('room.id', ondelete='CASCADE'), nullable=False)
+    deposit = Column(Integer, nullable=True)
     # assigned_room_id = Column(Integer, ForeignKey('room.id', ondelete='CASCADE'), nullable=False, unique=True)
     move_in_date = Column(Date, nullable=False)
     property_id = Column(Integer, ForeignKey('property.id'), nullable=False)

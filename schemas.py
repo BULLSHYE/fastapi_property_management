@@ -33,6 +33,9 @@ class PropertyBase(BaseModel):
     address: str
     property_name: str
     is_active: bool = True
+    landmark: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
 
 class PropertyCreate(PropertyBase):
     landlord_id: int
@@ -83,6 +86,8 @@ class TenantBase(BaseModel):
     move_in_date: date
     property_id: int
     is_active: bool = True
+    deposit: Optional[int] = None
+
 
 class TenantCreate(TenantBase):
     assigned_room_id: int
@@ -96,6 +101,7 @@ class TenantUpdate(BaseModel):
     other_images: Optional[str] = None
     move_in_date: Optional[date] = None
     is_active: Optional[bool] = None
+    deposit: Optional[int] = None
 
 class Tenant(TenantBase):
     id: int

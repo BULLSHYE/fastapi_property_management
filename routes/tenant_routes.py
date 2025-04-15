@@ -54,6 +54,7 @@ def create_tenant(tenant: schemas.TenantCreate, db: Session = Depends(get_db)):
         assigned_room_id=tenant.assigned_room_id,
         move_in_date=tenant.move_in_date,
         property_id=tenant.property_id,
+        deposit=tenant.deposit,
         is_active=tenant.is_active
     )
     
@@ -212,6 +213,7 @@ def read_property_tenants(
                 "room_number": room.room_number,
                 "is_occupied": room.is_occupied,
                 "tenants": {
+                    "tenant_id": tenant.id,
                     "tenant_name": tenant.name,
                     "tenant_email": tenant.email,
                     "tenant_mobile": tenant.mobile_number,
@@ -219,6 +221,7 @@ def read_property_tenants(
                     "total_person": tenant.total_person,
                     "aadhar_photo": tenant.aadhar_photo,
                     "other_images": tenant.other_images,
+                    "deposit": tenant.deposit,
                 }
             }
             rooms_with_tenants.append(room_data)

@@ -21,6 +21,9 @@ def create_property(property_data: schemas.PropertyCreate, db: Session = Depends
         landlord_id=property_data.landlord_id,
         address=property_data.address,
         property_name=property_data.property_name,
+        landmark=property_data.landmark,
+        city=property_data.city,
+        state=property_data.state,
         is_active=property_data.is_active
     )
     db.add(db_property)
