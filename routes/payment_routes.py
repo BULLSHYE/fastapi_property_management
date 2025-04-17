@@ -63,6 +63,15 @@ def read_payment(payment_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Payment not found")
     return db_payment
 
+@router.get("/property/{property_id}", response_model=List[schemas.Payment])
+def read_payment(property_id: int, db: Session = Depends(get_db)):
+    db_payment = db.query(models.Payment).filter(models.Payment.property_id == property_id).all()
+    if db_payment is None:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    
+    readings = db.query(models.Payment).filter(models.Payment.property_id == property_id).all()
+    return readings
+
 @router.get("/tenant/{tenant_id}", response_model=List[schemas.Payment])
 def read_tenant_payments(tenant_id: int, db: Session = Depends(get_db)):
     # Check if tenant exists

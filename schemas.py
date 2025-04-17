@@ -136,6 +136,7 @@ class PaymentBase(BaseModel):
 class PaymentCreate(PaymentBase):
     tenant_id: int
     room_id: int
+    property_id: int
 
 class PaymentUpdate(BaseModel):
     payment: Optional[float] = None
@@ -147,6 +148,7 @@ class Payment(PaymentBase):
     id: int
     tenant_id: int
     room_id: int
+    property_id: int
 
     class Config:
         # orm_mode = True

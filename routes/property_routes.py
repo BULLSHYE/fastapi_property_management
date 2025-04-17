@@ -79,45 +79,50 @@ def delete_property(property_id: int, db: Session = Depends(get_db)):
     return None
 
 @router.get("/{property_id}/{month}")
-def proproperty_monthly_details(property_id: int, month: int, db: Session = Depends(get_db)):
+def property_monthly_details(property_id: int, month: int, db: Session = Depends(get_db)):
     # Fetch all rooms under the given property
-        rooms = db.query(models.Room).filter(models.Room.property_id == property_id).all()
-        if not rooms:
-            raise HTTPException(status_code=404, detail="No rooms found for this property.")
+    rooms = db.query(models.Room).filter(models.Room.property_id == property_id).all()
+    if not rooms:
+        raise HTTPException(status_code=404, detail="No rooms found for this property.")
 
-        # Fetch meter readings for the specified month
-        meter_readings = (
-            db.query(models.Electricity)
-            .filter(models.Electricity.room_id.in_([room.id for room in rooms]),extract('month', models.Electricity.reading_date) == month)
-            .all()
-        )
+    room_ids = [room.id for room in rooms]
 
-        # Fetch payments for the specified month
-        payments = (
-            db.query(models.Payment)
-            .filter(models.Payment.room_id.in_([room.id for room in rooms]), models.Payment.month == month)
-            .all()
-        )
+    # Fetch meter readings for the specified month
+    meter_readings = (
+        db.query(models.Electricity)
+        .filter(models.Electricity.room_id.in_(room_ids), extract('month', models.Electricity.reading_date) == month)
+        .all()
+    )
 
-        # Organize data by room
-        rooms_info = defaultdict(lambda: {"meter_readings": [], "payments": []})
+    # Fetch payments for the specified month
+    payments = (
+        db.query(models.Payment)
+        .filter(models.Payment.room_id.in_(room_ids), models.Payment.month == month)
+        .all()
+    )
 
-        # Populate meter readings and payments for each room
-        for reading in meter_readings:
-            rooms_info[reading.room_id]["meter_readings"].append(schemas.Electricity.from_orm(reading))
+    # Organize data by room
+    rooms_info = defaultdict(lambda: {"meter_readings": [], "payments": []})
 
-        for payment in payments:
-            rooms_info[payment.room_id]["payments"].append(schemas.Payment.from_orm(payment))
+    for reading in meter_readings:
+        rooms_info[reading.room_id]["meter_readings"].append(schemas.Electricity.from_orm(reading))
 
-        # Structure room details
-        room_details = {
-            room.id: {
-                "room_number": room.room_number,
-                "is_occupied": room.is_occupied,
-                "meter_readings": rooms_info[room.id]["meter_readings"],
-                "payments": rooms_info[room.id]["payments"],
-            }
-            for room in rooms
+    for payment in payments:
+        rooms_info[payment.room_id]["payments"].append(schemas.Payment.from_orm(payment))
+
+    # Structure response as a list
+    room_details = []
+    for room in rooms:
+        room_data = {
+            "room_number": room.room_number,
+            "is_occupied": room.is_occupied,
+            "meter_readings": rooms_info[room.id]["meter_readings"],
+            "payments": rooms_info[room.id]["payments"],
         }
+        room_details.append(room_data)
 
-        return {"property_id": property_id, "month": month, "rooms": room_details}
+    return {
+        "property_id": property_id,
+        "month": month,
+        "rooms": room_details  # ✅ List instead of dynamic key object
+    }
