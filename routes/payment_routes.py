@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from sqlalchemy.exc import IntegrityError
-
+from collections import defaultdict
+from sqlalchemy import extract
 from database import get_db
 import models, schemas
 
@@ -115,3 +116,52 @@ def delete_payment(payment_id: int, db: Session = Depends(get_db)):
     db.delete(db_payment)
     db.commit()
     return None
+
+@router.get("/{property_id}/{month}")
+def property_monthly_details(property_id: int, month: int, db: Session = Depends(get_db)):
+    # Fetch all rooms under the given property
+    rooms = db.query(models.Room).filter(models.Room.property_id == property_id).all()
+    if not rooms:
+        raise HTTPException(status_code=404, detail="No rooms found for this property.")
+
+    room_ids = [room.id for room in rooms]
+
+    # Fetch meter readings for the specified month
+    meter_readings = (
+        db.query(models.Electricity)
+        .filter(models.Electricity.room_id.in_(room_ids), extract('month', models.Electricity.reading_date) == month)
+        .all()
+    )
+
+    # Fetch payments for the specified month
+    payments = (
+        db.query(models.Payment)
+        .filter(models.Payment.room_id.in_(room_ids), models.Payment.month == month)
+        .all()
+    )
+
+    # Organize data by room
+    rooms_info = defaultdict(lambda: {"meter_readings": [], "payments": []})
+
+    for reading in meter_readings:
+        rooms_info[reading.room_id]["meter_readings"].append(schemas.Electricity.from_orm(reading))
+
+    for payment in payments:
+        rooms_info[payment.room_id]["payments"].append(schemas.Payment.from_orm(payment))
+
+    # Structure response as a list
+    room_details = []
+    for room in rooms:
+        room_data = {
+            "room_number": room.room_number,
+            "is_occupied": room.is_occupied,
+            "meter_readings": rooms_info[room.id]["meter_readings"],
+            "payments": rooms_info[room.id]["payments"],
+        }
+        room_details.append(room_data)
+
+    return {
+        "property_id": property_id,
+        "month": month,
+        "rooms": room_details  # ✅ List instead of dynamic key object
+    }
