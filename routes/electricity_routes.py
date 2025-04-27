@@ -90,19 +90,93 @@ router = APIRouter(
 
 #     return created_entries if len(created_entries) > 1 else created_entries[0]
 
+# @router.post("/", status_code=status.HTTP_201_CREATED)
+# def create_electricity_readings(
+#     data: Union[schemas.ElectricityCreate, List[schemas.ElectricityCreate]] = Body(...),
+#     db: Session = Depends(get_db)
+# ):
+#     # Normalize single entry to list
+#     if isinstance(data, dict):
+#         data = [schemas.ElectricityCreate(**data)]
+
+#     created_entries = []
+
+#     for entry in data:
+#         # 1. Lookup Room by room_number and property_id
+#         room = db.query(models.Room).filter_by(
+#             room_number=entry.room_number,
+#             property_id=entry.property_id
+#         ).first()
+
+#         if not room:
+#             raise HTTPException(
+#                 status_code=404,
+#                 detail=f"Room {entry.room_number} in property {entry.property_id} not found"
+#             )
+
+#         # 2. Calculate values
+#         consumption = round(entry.current_reading - entry.last_reading, 2)
+#         total_amount = consumption * entry.rate
+
+#         # 3. Create Electricity entry
+#         db_entry = models.Electricity(
+#             room_id=room.id,  # ✅ add room_id
+#             room_number=room.room_number,
+#             last_reading=entry.last_reading,
+#             current_reading=entry.current_reading,
+#             consumption=consumption,
+#             rate=entry.rate,
+#             total_amount=total_amount,
+#             property_id=entry.property_id
+#             # ✅ no need to pass reading_date — default will handle it
+#         )
+
+#         db.add(db_entry)
+#         created_entries.append(db_entry)
+
+#         # 4. Create Payment entry
+#         tenant = room.tenant  # Room has a relationship with tenant
+#         if tenant:
+#             # Create a payment for the corresponding tenant
+#             payment = models.Payment(
+#                 tenant_id=tenant.id,
+#                 room_id=room.id,
+#                 month=datetime.now().month,
+#                 year=datetime.now().year,
+#                 payment=total_amount,
+#                 payment_due=None,  # Assuming no due for now
+#                 is_paid=True,  # Assuming it's paid by default
+#                 property_id=entry.property_id
+#             )
+
+#             db.add(payment)
+
+#     # Commit all changes to the database
+#     db.commit()
+
+#     # Refresh entries to get the latest values
+#     for e in created_entries:
+#         db.refresh(e)
+
+#     return created_entries if len(created_entries) > 1 else created_entries[0]
+
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_electricity_readings(
     data: Union[schemas.ElectricityCreate, List[schemas.ElectricityCreate]] = Body(...),
     db: Session = Depends(get_db)
 ):
-    # Normalize single entry to list
-    if isinstance(data, dict):
+    # Normalize data to a list of schemas.ElectricityCreate
+    if isinstance(data, schemas.ElectricityCreate):
+        data = [data]
+    elif isinstance(data, list) and all(isinstance(item, dict) for item in data):
+        data = [schemas.ElectricityCreate(**item) for item in data]
+    elif isinstance(data, dict):
         data = [schemas.ElectricityCreate(**data)]
 
     created_entries = []
 
     for entry in data:
-        # 1. Lookup Room by room_number and property_id
+        # Now you can safely access entry.room_number, etc.
         room = db.query(models.Room).filter_by(
             room_number=entry.room_number,
             property_id=entry.property_id
@@ -114,13 +188,11 @@ def create_electricity_readings(
                 detail=f"Room {entry.room_number} in property {entry.property_id} not found"
             )
 
-        # 2. Calculate values
         consumption = round(entry.current_reading - entry.last_reading, 2)
         total_amount = consumption * entry.rate
 
-        # 3. Create Electricity entry
         db_entry = models.Electricity(
-            room_id=room.id,  # ✅ add room_id
+            room_id=room.id,
             room_number=room.room_number,
             last_reading=entry.last_reading,
             current_reading=entry.current_reading,
@@ -128,33 +200,27 @@ def create_electricity_readings(
             rate=entry.rate,
             total_amount=total_amount,
             property_id=entry.property_id
-            # ✅ no need to pass reading_date — default will handle it
         )
 
         db.add(db_entry)
         created_entries.append(db_entry)
 
-        # 4. Create Payment entry
-        tenant = room.tenant  # Room has a relationship with tenant
+        tenant = room.tenant
         if tenant:
-            # Create a payment for the corresponding tenant
             payment = models.Payment(
                 tenant_id=tenant.id,
                 room_id=room.id,
                 month=datetime.now().month,
                 year=datetime.now().year,
                 payment=total_amount,
-                payment_due=None,  # Assuming no due for now
-                is_paid=True,  # Assuming it's paid by default
+                payment_due=None,
+                is_paid=True,
                 property_id=entry.property_id
             )
-
             db.add(payment)
 
-    # Commit all changes to the database
     db.commit()
 
-    # Refresh entries to get the latest values
     for e in created_entries:
         db.refresh(e)
 
@@ -261,8 +327,8 @@ def property_monthly_details(property_id: int, month: int, db: Session = Depends
         room_data = {
             "room_number": room.room_number,
             "is_occupied": room.is_occupied,
-            "meter_readings": rooms_info[room.id]["meter_readings"],
-            "payments": rooms_info[room.id]["payments"],
+            "meter_readings": rooms_info[room.id]["meter_readings"] or None,
+            "payments": rooms_info[room.id]["payments"] or None,
         }
         room_details.append(room_data)
 
