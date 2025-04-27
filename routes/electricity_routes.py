@@ -313,13 +313,13 @@ def property_monthly_details(property_id: int, month: int, db: Session = Depends
     )
 
     # Organize data by room
-    rooms_info = defaultdict(lambda: {"meter_readings": [], "payments": []})
+    rooms_info = defaultdict(lambda: {"meter_readings": None, "payments": None})
 
     for reading in meter_readings:
-        rooms_info[reading.room_id]["meter_readings"].append(schemas.Electricity.from_orm(reading))
+        rooms_info[reading.room_id]["meter_readings"] = schemas.Electricity.from_orm(reading)
 
     for payment in payments:
-        rooms_info[payment.room_id]["payments"].append(schemas.Payment.from_orm(payment))
+        rooms_info[payment.room_id]["payments"] = schemas.Payment.from_orm(payment)
 
     # Structure response as a list
     room_details = []
